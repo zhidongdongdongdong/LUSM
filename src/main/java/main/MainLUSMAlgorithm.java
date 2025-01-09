@@ -20,7 +20,7 @@ public class MainLUSMAlgorithm {
 //        System.out.println(finalInput);
         String output = ".//outputNew.txt";
         int[] max_utility = new int[]{5};
-        int maxLength=10;
+        int maxLength=3;
         for (int i = 0; i < max_utility.length; i++) {
             MemoryLogger.getInstance().reset();
             LowUtilitySequenceMining lowUtilitySequenceMining = new LowUtilitySequenceMining();

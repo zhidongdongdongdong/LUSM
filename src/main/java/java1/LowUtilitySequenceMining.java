@@ -17,7 +17,7 @@ public class LowUtilitySequenceMining {
     Map<Integer, Integer[]> mapTidToUtilities_preprocess = new LinkedHashMap<>();
     Map<Integer, Integer> mapItemToUtility = new LinkedHashMap<>();
     Map<Integer, BitSet> mapItemToBitSet = new LinkedHashMap<>();
-    Set<String> maxSequence=new TreeSet<>();
+    Set<List<Integer>> maxSequenceList = new LinkedHashSet<>();
     Generator3 generator;
     int count = 0;
     //    记录每行序列的起始项的位置
@@ -31,6 +31,7 @@ public class LowUtilitySequenceMining {
     long candidatesCount;
 
     int maxLength;
+
     public void runAlgorithm(String input, int max_utility, int maxLength, String output) throws IOException {
 
         this.max_utility = max_utility;
@@ -40,8 +41,8 @@ public class LowUtilitySequenceMining {
         System.out.println("startTime:" + startTime);
 //
         loadFile(input);
-        preprocess();
-        coreAlg(maxLength);
+        preprocess(maxLength);
+        coreAlg();
 //        //sortTrans(input);
 //        String delPrex = null;
 //        List<int[]> res = genContain(input);
@@ -265,22 +266,22 @@ public class LowUtilitySequenceMining {
             this.mapTidToItems = mapTidToItems;
             this.mapTidToUtilities = mapTidToUtilities;
 //            输出mapTidToItems的数据
-//            for (Map.Entry<Integer, Integer[]> entry : mapTidToItems.entrySet()) {
-////                System.out.println(entry);
-//                System.out.println("第" + entry.getKey() + "行：");
-//                for (int i = 0; i < entry.getValue().length; i++) {
-//                    System.out.print(entry.getValue()[i] + " ");
-//                }
-//                System.out.println(" ");
-//            }
+            for (Map.Entry<Integer, Integer[]> entry : mapTidToItems.entrySet()) {
+//                System.out.println(entry);
+                System.out.println("第" + entry.getKey() + "行：");
+                for (int i = 0; i < entry.getValue().length; i++) {
+                    System.out.print(entry.getValue()[i] + " ");
+                }
+                System.out.println(" ");
+            }
 //            输出mapTidToUtilities的数据
-//            for (Map.Entry<Integer, Integer[]> entry : mapTidToUtilities.entrySet()) {
-//                System.out.println("第" + entry.getKey() + "行：");
-//                for (int i = 0; i < entry.getValue().length; i++) {
-//                    System.out.print(entry.getValue()[i] + " ");
-//                }
-//                System.out.println(" ");
-//            }
+            for (Map.Entry<Integer, Integer[]> entry : mapTidToUtilities.entrySet()) {
+                System.out.println("第" + entry.getKey() + "行：");
+                for (int i = 0; i < entry.getValue().length; i++) {
+                    System.out.print(entry.getValue()[i] + " ");
+                }
+                System.out.println(" ");
+            }
 //            System.out.println("sequenceId"+sequenceId);
 //            System.out.println(mapTidToItems);
 //            System.out.println(mapTidToUtilities);
@@ -302,25 +303,58 @@ public class LowUtilitySequenceMining {
      * 使用策略1，裁剪掉每个序列中，效用大于最低效用门槛的项，如果某个序列中所有的项都被裁剪，则裁剪掉整个序列。
      *
      * */
-    public void preprocess() {
+    public void preprocess(int maxLength) {
         System.out.println("当前运行到preprocess");
         Integer key;
-        int countBit=0;
-        for(Map.Entry<Integer,Integer[]> entry: this.mapTidToItems.entrySet()){
-            Integer[] items=entry.getValue();
-            for(int i=0;i<items.length;i++){
-                key=items[i] ;
-                BitSet bitSet=mapItemToBitSet.get(key);
-                if(bitSet==null){
-                    BitSet bitSet1=new BitSet();
-                    mapItemToBitSet.put(key,bitSet1);
+        int countBit = 0;
+        for (Map.Entry<Integer, Integer[]> entry : this.mapTidToItems.entrySet()) {
+            Integer[] items = entry.getValue();
+            for (int i = 0; i < items.length; i++) {
+                key = items[i];
+                BitSet bitSet = mapItemToBitSet.get(key);
+                if (bitSet == null) {
+                    BitSet bitSet1 = new BitSet();
+                    mapItemToBitSet.put(key, bitSet1);
 //                    System.out.println("输出"+key+"的bitSet为空");
                 }
-                bitSet=mapItemToBitSet.get(key);
+                bitSet = mapItemToBitSet.get(key);
                 bitSet.set(countBit);
                 countBit++;
             }
         }
+        List<Integer> list;
+        boolean key1=false;
+        this.maxLength = maxLength;
+        for (Map.Entry<Integer, Integer[]> entry : this.mapTidToItems.entrySet()) {
+            Integer[] items = entry.getValue();
+            for (int i = 0; i < items.length; i++) {
+//                if (key1==true){
+//                    key=false;
+//                    break;
+//                }
+                list = new ArrayList<>();
+                if (items[i] == -1) {
+                    continue;
+                }
+                for (int j = i; j < items.length && ((j - i + 1) <= maxLength); j++) {
+                    if(items[j] == -1) {
+                        key1=true;
+                        break;
+                    }
+                    list.add(items[j]);
+                    if (j == items.length - 1) {
+                        key1=true;
+                    }
+                }
+//                System.out.println(list);
+                if(!isContains(list)){
+                    maxSequenceList.add(list);
+                }
+//                System.out.println("输出maxSequenceList"+maxSequenceList);
+            }
+        }
+        System.out.println(maxSequenceList);
+
 //        for(Map.Entry<Integer,BitSet> entry:this.mapItemToBitSet.entrySet()){
 //            System.out.println("输出entry:"+entry);
 //            System.out.println(entry.getKey());
@@ -413,23 +447,25 @@ public class LowUtilitySequenceMining {
 //                }
 //                System.out.println(" ");
 //            }
-}
-    public void coreAlg(int maxLength){
-        System.out.println("当前运行到coreAlg");
-        this.maxLength=maxLength;
-        for(Map.Entry<Integer,Integer[]> entry:this.mapTidToItems.entrySet()){
+    }
 
+    public void coreAlg() {
+        System.out.println("当前运行到coreAlg");
+        for (List<Integer> sequence : maxSequenceList) {
 
 
         }
 
-
-
-
-
-
-
     }
+    public boolean isContains(List<Integer> sequence){
+        for(List<Integer> maxSequence:maxSequenceList){
+            if(maxSequence.containsAll(sequence)){
+                return true;
+            }
+        }
+        return false;
+    }
+
     public void printStats(List<Double> runTimelist, List<Double> memorylist, List<Long> candidateslist, List<Integer> patternlist) {
 
 //        runTimelist.add((double) runtime / 1000);
