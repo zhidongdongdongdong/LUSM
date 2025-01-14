@@ -14,23 +14,21 @@ public class MainLUSMAlgorithm {
     static List<Integer> pattern=new ArrayList<>();
     public static void main(String[] args)throws IOException {
         //扫描文件
-        String input1="example.txt";
+        String input1="example2.txt";
         String finalInput=input1;
         String input = fileToPath("/"+finalInput);
-//        System.out.println(finalInput);
         String output = ".//outputNew.txt";
-        int[] max_utility = new int[]{5};
-        int maxLength=3;
+        int[] max_utility = new int[]{1000};
+        int maxLength=5;
         for (int i = 0; i < max_utility.length; i++) {
             MemoryLogger.getInstance().reset();
             LowUtilitySequenceMining lowUtilitySequenceMining = new LowUtilitySequenceMining();
             MemoryLogger.getInstance().checkMemory();
             lowUtilitySequenceMining.runAlgorithm(input, max_utility[i],maxLength, output);
             MemoryLogger.getInstance().checkMemory();
-//            lowUtilitySequenceMining.printStats(runTime,memory,candidates,pattern);
+            lowUtilitySequenceMining.printStats(runTime,memory,candidates,pattern);
         }
 //        OutputExp(max_utility,finalInput);
-//        System.out.println("Hello world!");
     }
     private static void OutputExp(int[] max_utility, String input) throws IOException {
         String experimentFile = ".//newexp"+input;
