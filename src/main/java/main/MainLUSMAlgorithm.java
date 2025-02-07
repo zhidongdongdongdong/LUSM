@@ -18,7 +18,7 @@ public class MainLUSMAlgorithm {
         String finalInput=input1;
         String input = fileToPath("/"+finalInput);
         String output = ".//outputNew.txt";
-        int[] max_utility = new int[]{1000};
+        int[] max_utility = new int[]{2000};
         int maxLength=5;
         for (int i = 0; i < max_utility.length; i++) {
             MemoryLogger.getInstance().reset();

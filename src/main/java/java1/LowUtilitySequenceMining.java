@@ -1,6 +1,7 @@
 package java1;
 
 import com.google.common.base.Joiner;
+import org.jetbrains.annotations.NotNull;
 
 import javax.sound.midi.Sequencer;
 import javax.swing.*;
@@ -238,7 +239,7 @@ public class LowUtilitySequenceMining {
         return res;
     }
 
-//    public void loadFile(String path) throws IOException {
+    //    public void loadFile(String path) throws IOException {
 //        Set<Integer> setOfItems = new TreeSet<>();
 //        Map<Integer, Integer[]> mapTidToItems = new LinkedHashMap<>();
 //        Map<Integer, Integer[]> mapTidToUtilities = new LinkedHashMap<>();
@@ -316,68 +317,68 @@ public class LowUtilitySequenceMining {
 ////        generator = new Generator3(setOfItems, tidCount);
 ////        generator.setGenerator(mapTidToItems, mapTidToUtilities);
 //    }
-public void loadFile(String path) throws IOException {
-    Set<Integer> setOfItems = new TreeSet<>();
-    Map<Integer, Integer[]> mapTidToItems = new LinkedHashMap<>();
-    Map<Integer, Integer[]> mapTidToUtilities = new LinkedHashMap<>();
-    int tidCount = 0;
-    sequenceId.add(0);
+    public void loadFile(String path) throws IOException {
+        Set<Integer> setOfItems = new TreeSet<>();
+        Map<Integer, Integer[]> mapTidToItems = new LinkedHashMap<>();
+        Map<Integer, Integer[]> mapTidToUtilities = new LinkedHashMap<>();
+        int tidCount = 0;
+        sequenceId.add(0);
 
-    try (BufferedReader myInput = new BufferedReader(new InputStreamReader(new FileInputStream(new File(path))))) {
-        String thisLine;
+        try (BufferedReader myInput = new BufferedReader(new InputStreamReader(new FileInputStream(new File(path))))) {
+            String thisLine;
 
-        // Read each line from the file
-        while ((thisLine = myInput.readLine()) != null) {
-            // Skip comments, empty lines, and metadata
-            if (thisLine.isEmpty() || thisLine.charAt(0) == '#' || thisLine.charAt(0) == '%' || thisLine.charAt(0) == '@') {
-                continue;
-            }
-
-            // Split the line into parts
-            String[] partitions = thisLine.split(":");
-            String[] items = partitions[0].split(" ");
-            String[] utilities = partitions[2].split(" ");
-
-            // Convert items and utilities to Integer arrays
-            Integer[] itemsInt = new Integer[items.length];
-            Integer[] utilsInt = new Integer[utilities.length];
-
-            for (int i = 0; i < items.length; i++) {
-                itemsInt[i] = Integer.parseInt(items[i]);
-                utilsInt[i] = Integer.parseInt(utilities[i]);
-                count++;
-
-                // Update item and utility values if utility exceeds max_utility
-                if (utilsInt[i] >= max_utility) {
-                    itemsInt[i] = -1;
-                    utilsInt[i] = -1;
-                    setOfItems.add(-1);
-                } else {
-                    setOfItems.add(itemsInt[i]);
+            // Read each line from the file
+            while ((thisLine = myInput.readLine()) != null) {
+                // Skip comments, empty lines, and metadata
+                if (thisLine.isEmpty() || thisLine.charAt(0) == '#' || thisLine.charAt(0) == '%' || thisLine.charAt(0) == '@') {
+                    continue;
                 }
+
+                // Split the line into parts
+                String[] partitions = thisLine.split(":");
+                String[] items = partitions[0].split(" ");
+                String[] utilities = partitions[2].split(" ");
+
+                // Convert items and utilities to Integer arrays
+                Integer[] itemsInt = new Integer[items.length];
+                Integer[] utilsInt = new Integer[utilities.length];
+
+                for (int i = 0; i < items.length; i++) {
+                    itemsInt[i] = Integer.parseInt(items[i]);
+                    utilsInt[i] = Integer.parseInt(utilities[i]);
+                    count++;
+
+                    // Update item and utility values if utility exceeds max_utility
+                    if (utilsInt[i] >= max_utility) {
+                        itemsInt[i] = -1;
+                        utilsInt[i] = -1;
+                        setOfItems.add(-1);
+                    } else {
+                        setOfItems.add(itemsInt[i]);
+                    }
+                }
+
+                // Add the processed data to the maps
+                mapTidToItems.put(tidCount, itemsInt);
+                mapTidToUtilities.put(tidCount, utilsInt);
+                sequenceId.add(count);
+                tidCount++;
             }
 
-            // Add the processed data to the maps
-            mapTidToItems.put(tidCount, itemsInt);
-            mapTidToUtilities.put(tidCount, utilsInt);
-            sequenceId.add(count);
-            tidCount++;
+            this.mapTidToItems = mapTidToItems;
+            this.mapTidToUtilities = mapTidToUtilities;
+
+            // Print mapTidToItems data
+            printMapData("mapTidToItems", mapTidToItems);
+
+            // Print mapTidToUtilities data
+            printMapData("mapTidToUtilities", mapTidToUtilities);
+
+        } catch (IOException e) {
+            // Handle file reading exceptions
+            e.printStackTrace();
         }
-
-        this.mapTidToItems = mapTidToItems;
-        this.mapTidToUtilities = mapTidToUtilities;
-
-        // Print mapTidToItems data
-        printMapData("mapTidToItems", mapTidToItems);
-
-        // Print mapTidToUtilities data
-        printMapData("mapTidToUtilities", mapTidToUtilities);
-
-    } catch (IOException e) {
-        // Handle file reading exceptions
-        e.printStackTrace();
     }
-}
 
     private void printMapData(String mapName, Map<Integer, Integer[]> mapData) {
         System.out.println("Printing " + mapName + ":");
@@ -613,7 +614,7 @@ public void loadFile(String path) throws IOException {
         runtime5 = System.currentTimeMillis() - startTime;
     }
 
-//    public void coreAlg() {
+    //    public void coreAlg() {
 //        System.out.println("当前运行到coreAlg");
 //        Integer utilityOfSequence = 0;
 //        List<Integer> sequence1 = new ArrayList<>();
@@ -638,27 +639,42 @@ public void loadFile(String path) throws IOException {
 ////        System.out.println("输出：");
 ////        System.out.println(UtilitiesList);
 //    }
-public void processCoreAlgorithm() {
-    System.out.println("当前运行到coreAlg");
-    for (List<Integer> sequence : maxSequenceList) {
-        int utilityOfSequence = countUtility(sequence);
-        if (utilityOfSequence <= max_utility) {
-            processLowUtilitySequence(sequence, utilityOfSequence);
-        } else {
-            cut(sequence);
+    public void processCoreAlgorithm() {
+        System.out.println("当前运行到coreAlg");
+//        List<Integer> sequenceTest = new ArrayList<>();
+//        sequenceTest.add(195);
+//        sequenceTest.add(385);
+//        int count=countUtility(sequenceTest);
+////        List<List<Integer>> UtilitiesList = getUtilities(sequenceTest);
+//        System.out.println("输出：");
+//        System.out.println(count);
+        for (List<Integer> sequence : maxSequenceList) {
+            int utilityOfSequence = countUtility(sequence);
+//            if (utilityOfSequence <= max_utility && (lowUtilityPattern.get(sequence) == null))
+            if (utilityOfSequence <= max_utility && hasProcessedSequenceList.contains(sequence) == false) {
+                processLowUtilitySequence(sequence, utilityOfSequence);
+            } else {
+//                cut2(sequence);
+                cut(sequence);
+            }
         }
+        printLowUtilitySequence();
     }
-    printLowUtilitySequence();
-}
+
     private void processLowUtilitySequence(List<Integer> sequence, int utility) {
+//        if (utility <= max_utility) {
+
         if (!hasProcessedSequenceList.contains(sequence)) {
             hasProcessedSequenceList.add(sequence);
             candidatesCount++;
             patternCount++;
             lowUtilityPattern.put(sequence, utility);
+//            lowUtilityPattern.put(sequence, utility);
             LUSM(sequence);
         }
+//        }
     }
+
     public void coreAlg() {
         System.out.println("当前运行到coreAlg");
         Integer utilityOfSequence = 0;
@@ -704,6 +720,7 @@ public void processCoreAlgorithm() {
 //        System.out.println("输出：");
 //        System.out.println(UtilitiesList);
     }
+
     public void cut1(List<Integer> sequence) {
         if (sequence.size() > 1) {
             List<List<Integer>> utilities = getUtilities(sequence);
@@ -713,7 +730,44 @@ public void processCoreAlgorithm() {
             processSingleElementSequence(sequence);
         }
     }
+
+    public void cut2(List<Integer> sequence) {
+        if (sequence.size() > 1) {
+//            List<List<Integer>> utilities = getUtilities(sequence);
+            List<Integer> subFirstSequence = new ArrayList<>(sequence);
+            List<Integer> subLastSequence = new ArrayList<>(sequence);
+            subFirstSequence.remove(0); // 删除首项
+            subLastSequence.remove(subLastSequence.size() - 1); // 删除尾项
+            int firstUtility = countUtility(subFirstSequence);
+            int lastUtility = countUtility(subLastSequence);
+            if (firstUtility <= max_utility && hasProcessedSequenceList.contains(subFirstSequence) == false) {
+                processLowUtilitySequence(subFirstSequence, firstUtility);
+                hasProcessedSequenceList.add(subFirstSequence);
+            } else {
+                cut2(subFirstSequence);
+            }
+            if (lastUtility <= max_utility && hasProcessedSequenceList.contains(subLastSequence)==false) {
+                processLowUtilitySequence(subLastSequence, lastUtility);
+                hasProcessedSequenceList.add(subLastSequence);
+            } else {
+                cut2(subLastSequence);
+            }
+        } else {
+//            System.out.println("处理一个项");
+            if (hasProcessedSequenceList.contains(sequence) == false) {
+                LUSMItem(sequence);
+                hasProcessedSequenceList.add(sequence);
+            }
+        }
+    }
+
     public void cut(List<Integer> sequence) {
+//        List<Integer> sequenceTest = new ArrayList<>();
+//        sequenceTest.add(195);
+//        sequenceTest.add(385);
+//        if(sequence.equals(sequenceTest)){
+//            System.out.println("输出195 385");
+//        }
         if (sequence.size() > 1) {
             List<List<Integer>> utilities = getUtilities(sequence);
             cutFirst(sequence, utilities);
@@ -731,6 +785,12 @@ public void processCoreAlgorithm() {
         if (sequence.size() > 1) {
 //            cutFirst(sequence, utilities);
 //            cutLast(sequence, utilities);
+//            List<Integer> sequenceTest = new ArrayList<>();
+//            sequenceTest.add(195);
+//            sequenceTest.add(385);
+//            if(sequence.equals(sequenceTest)){
+//                System.out.println("输出195 385");
+//            }
             cutSequence(sequence, utilities, true);  // 剪除首项
             cutSequence(sequence, utilities, false); // 剪除尾项
         } else {
@@ -739,16 +799,23 @@ public void processCoreAlgorithm() {
 
         }
     }
-private void processSingleElementSequence(List<Integer> sequence){
-    if (hasProcessedSequenceList.contains(sequence) == false) {
-        LUSMItem(sequence);
-        hasProcessedSequenceList.add(sequence);
+
+    private void processSingleElementSequence(List<Integer> sequence) {
+        if (hasProcessedSequenceList.contains(sequence) == false) {
+            LUSMItem(sequence);
+            hasProcessedSequenceList.add(sequence);
+        }
     }
-}
+
     private void cutSequence(List<Integer> sequence, List<List<Integer>> utilities, boolean isFirst) {
         List<List<Integer>> newUtilities = new ArrayList<>();
         List<Integer> newSequence;
-
+//        List<Integer> sequenceTest = new ArrayList<>();
+//        sequenceTest.add(195);
+//        sequenceTest.add(385);
+//        if(sequence.equals(sequenceTest)){
+//            System.out.println("输出195 385");
+//        }
         for (List<Integer> entry : utilities) {
             List<Integer> modifiedEntry = new ArrayList<>(entry);
             if (isFirst) {
@@ -774,7 +841,7 @@ private void processSingleElementSequence(List<Integer> sequence){
     public void LUSMItem(List<Integer> sequence) {
         int utility = countUtility(sequence);
         if (utility <= max_utility) {
-            processLowUtilitySequence(sequence,utility);
+            processLowUtilitySequence(sequence, utility);
         }
     }
 
@@ -800,13 +867,13 @@ private void processSingleElementSequence(List<Integer> sequence){
 
     public void cutFirst(List<Integer> sequence, List<List<Integer>> utilities) {
         List<List<Integer>> newUtilities = new ArrayList<>();
-        List<Integer> sequenceTest = new ArrayList<>();
-        sequenceTest.add(4);
-        sequenceTest.add(1);
-        sequenceTest.add(3);
-        if (sequence.equals(sequenceTest)) {
-            System.out.println("输出413");
-        }
+//        List<Integer> sequenceTest = new ArrayList<>();
+//        sequenceTest.add(4);
+//        sequenceTest.add(1);
+//        sequenceTest.add(3);
+//        if (sequence.equals(sequenceTest)) {
+//            System.out.println("输出413");
+//        }
         int allUtilities = 0;
         int start = 1;
         for (Iterator<List<Integer>> it = utilities.iterator(); it.hasNext(); ) {
@@ -826,7 +893,7 @@ private void processSingleElementSequence(List<Integer> sequence){
         }
     }
 
-//    public int countUtility_FL(List<List<Integer>> utilities) {
+    //    public int countUtility_FL(List<List<Integer>> utilities) {
 //        int utility = 0;
 //        List<Integer> utilityList;
 //        for (int i = 0; i < utilities.size(); i++) {
@@ -1054,7 +1121,7 @@ private void processSingleElementSequence(List<Integer> sequence){
         System.out.println("模式数目为：" + patternCount);
     }
 
-//    public void LUSM(List<Integer> sequence) {
+    //    public void LUSM(List<Integer> sequence) {
 //        List<Integer> subFirstSequence = new ArrayList<>(sequence);
 //        List<Integer> subLastSequence = new ArrayList<>(sequence);
 //        if (subFirstSequence.size() > 1 && hasProcessedSequenceList.contains(subFirstSequence.remove(0)) == false)
@@ -1128,34 +1195,54 @@ private void processSingleElementSequence(List<Integer> sequence){
 //            cut(subLastSequence);
 //        }
 //    }
-public void LUSM(List<Integer> sequence) {
-    if (!hasProcessedSequenceList.contains(sequence)) {
-        processLowUtilitySequence(sequence, countUtility(sequence));
+    public void LUSM(List<Integer> sequence) {
+        if (!hasProcessedSequenceList.contains(sequence)) {
+            if (countUtility(sequence) <= max_utility)
+                processLowUtilitySequence(sequence, countUtility(sequence));
+        }
+
+        if (sequence.size() == 1) {
+            processSingleElementSequence(sequence);
+            return;
+        }
+
+        List<Integer> subFirstSequence = new ArrayList<>(sequence);
+        List<Integer> subLastSequence = new ArrayList<>(sequence);
+
+        subFirstSequence.remove(0); // 删除首项
+        subLastSequence.remove(subLastSequence.size() - 1); // 删除尾项
+
+        processSubSequence(subFirstSequence);
+        processSubSequence(subLastSequence);
     }
 
-    if (sequence.size() == 1) {
-        processSingleElementSequence(sequence);
-        return;
-    }
+//    private void processSubSequence(@NotNull List<Integer> subSequence) {
+//        if (subSequence.size() > 1 && !hasProcessedSequenceList.contains(subSequence)) {
+//            int utility = countUtility(subSequence);
+//            if (utility <= max_utility && lowUtilityPattern.get(subSequence) == null) {
+//                processLowUtilitySequence(subSequence, utility);
+//            }
+//            hasProcessedSequenceList.add(subSequence);
+//            cut(subSequence);
+//        }
+//        if (subSequence.size() == 1 && !hasProcessedSequenceList.contains(subSequence)) {
+//            processSingleElementSequence(subSequence);
+//        }
+//    }
 
-    List<Integer> subFirstSequence = new ArrayList<>(sequence);
-    List<Integer> subLastSequence = new ArrayList<>(sequence);
-
-    subFirstSequence.remove(0); // 删除首项
-    subLastSequence.remove(subLastSequence.size() - 1); // 删除尾项
-
-    processSubSequence(subFirstSequence);
-    processSubSequence(subLastSequence);
-}
-
-    private void processSubSequence(List<Integer> subSequence) {
+    private void processSubSequence(@NotNull List<Integer> subSequence) {
         if (subSequence.size() > 1 && !hasProcessedSequenceList.contains(subSequence)) {
             int utility = countUtility(subSequence);
+//            hasProcessedSequenceList.add(subSequence);
             if (utility <= max_utility && lowUtilityPattern.get(subSequence) == null) {
                 processLowUtilitySequence(subSequence, utility);
+//                LUSM(subSequence);
+            } else {
+                cut(subSequence);
             }
-            hasProcessedSequenceList.add(subSequence);
-            cut(subSequence);
+        }
+        if (subSequence.size() == 1) {
+            processSingleElementSequence(subSequence);
         }
     }
 
