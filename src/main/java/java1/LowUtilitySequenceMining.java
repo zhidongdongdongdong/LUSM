@@ -14,6 +14,8 @@ public class LowUtilitySequenceMining {
     Map<Integer, BitSet> mapItemToBitSet = new LinkedHashMap<>();
     Set<List<Integer>> maxSequenceList = new LinkedHashSet<>();
     Set<List<Integer>> maxSequenceSet = new HashSet<>();
+
+    Set<List<Integer>> hasKnownHighUtilitySequence = new LinkedHashSet<>();
     Set<List<Integer>> hasProcessedSequenceList = new LinkedHashSet<>();
     Set<List<Integer>> hasDeleteSequenceList = new LinkedHashSet<>();
     Map<List<Integer>, Integer> lowUtilityPattern = new LinkedHashMap<>();
@@ -42,12 +44,17 @@ public class LowUtilitySequenceMining {
     public void runAlgorithm(String input, int max_utility, int maxLength, String output) throws IOException {
 
         this.max_utility = max_utility;
+        this.maxLength=maxLength;
         startTime = System.currentTimeMillis();
         System.out.println("输出最大效用:" + max_utility);
         System.out.println("startTime:" + startTime);
-        loadFile(input);
+        loadFile_sequence(input);
+//        loadFile_sequence_delete(input);
+//        loadFile(input);
         runtime2 = System.currentTimeMillis() - startTime;
-        preprocess(maxLength);
+        System.out.println("111111");
+        getMaxSequence(maxLength);
+//        getMaxSequence_delete(maxLength);
         runtime3 = System.currentTimeMillis() - startTime;
         processCoreAlgorithm();
         runtime = System.currentTimeMillis() - startTime;
@@ -70,6 +77,163 @@ public class LowUtilitySequenceMining {
         writer.write(buffer.toString());
         writer.newLine();
         writer.flush();
+    }
+
+    public void loadFile_sequence(String path) throws IOException {
+        final int[] tidCount = {0};
+        final int[] item1={0};
+        final int[] indexOfItem={0};
+        Set<Integer> setOfItems = new TreeSet<>();
+        Map<Integer, Integer[]> mapTidToItems = new LinkedHashMap<>();
+        Map<Integer, Integer[]> mapTidToUtilities = new LinkedHashMap<>();
+        sequenceId.add(0);
+        List<Integer> tidCountList=new ArrayList<>();
+        List<Integer> itemList=new ArrayList<>();
+        List<Integer> indexOfItemList=new ArrayList<>();
+        try (BufferedReader myInput = new BufferedReader(new InputStreamReader(new FileInputStream(new File(path))))) {
+            myInput.lines()
+                    .filter(line -> !line.isEmpty() && line.charAt(0) != '#' && line.charAt(0) != '%' && line.charAt(0) != '@')
+                    .forEach(thisLine -> {
+                        String[] partitions = thisLine.split("SUtility:"); // 按 "SUtility:" 分割数据
+                        if (partitions.length < 2) return;  // 如果没有有效的分割部分则跳过
+                        indexOfItem[0]=0;
+                        boolean key = false;
+                        String[] itemUtilityPairs = partitions[0].trim().split(" ");  // 按空格分割项效用对
+
+                        List<Integer> itemsIntList = new ArrayList<>();
+                        List<Integer> utilsIntList = new ArrayList<>();
+                        boolean containsMaxUtility = false;
+
+                        for (String pair : itemUtilityPairs) {
+                            if (pair.isEmpty()) continue;
+
+                            // 解析 "item[utility]" 格式
+                            String[] itemUtility = pair.split("\\[|\\]"); // 按 "[" 和 "]" 分割
+                            if (itemUtility.length != 2) continue;
+
+                            try {
+                                int item = Integer.parseInt(itemUtility[0].trim());
+                                int utility = Integer.parseInt(itemUtility[1].trim());
+                                item1[0]=item;
+                                if (utility >= max_utility) {
+                                    utility = -1;
+                                    containsMaxUtility = true;
+                                    tidCountList.add(tidCount[0]);
+                                    itemList.add(item1[0]);
+                                    indexOfItemList.add(indexOfItem[0]);
+                                } else {
+                                    key = true;
+                                }
+                                indexOfItem[0]++;
+                                setOfItems.add(item);
+                                itemsIntList.add(item);
+                                utilsIntList.add(utility);
+                            } catch (NumberFormatException e) {
+                                // 处理解析错误的情况
+                                System.out.println("解析项或效用错误: " + pair);
+                            }
+                        }
+
+                        // 如果包含最大效用项，则添加 -1 到集合中
+                        if (containsMaxUtility) {
+                            setOfItems.add(-1);
+                        }
+
+                        // 如果存在有效的项和效用，加入到 map 中
+                        if (key) {
+                            count += itemsIntList.size();
+                            mapTidToItems.put(tidCount[0], itemsIntList.toArray(new Integer[0]));
+                            mapTidToUtilities.put(tidCount[0], utilsIntList.toArray(new Integer[0]));
+                            sequenceId.add(count);
+                            tidCount[0]++;
+                        }
+                    });
+
+            this.mapTidToItems = mapTidToItems;
+            this.mapTidToUtilities = mapTidToUtilities;
+            for(int i=0;i<tidCountList.size();i++){
+                addHasKnownHS(tidCountList.get(i),indexOfItemList.get(i),itemList.get(i));
+            }
+            System.out.println("输出高效用序列");
+            System.out.println(hasKnownHighUtilitySequence);
+            printMapData("mapTidToItems", mapTidToItems);
+            printMapData("mapTidToUtilities", mapTidToUtilities);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    public void loadFile_sequence_delete(String path) throws IOException {
+        final int[] tidCount = {0};
+        Set<Integer> setOfItems = new TreeSet<>();
+        Map<Integer, Integer[]> mapTidToItems = new LinkedHashMap<>();
+        Map<Integer, Integer[]> mapTidToUtilities = new LinkedHashMap<>();
+        sequenceId.add(0);
+
+        try (BufferedReader myInput = new BufferedReader(new InputStreamReader(new FileInputStream(new File(path))))) {
+            myInput.lines()
+                    .filter(line -> !line.isEmpty() && line.charAt(0) != '#' && line.charAt(0) != '%' && line.charAt(0) != '@')
+                    .forEach(thisLine -> {
+                        String[] partitions = thisLine.split("SUtility:"); // 按 "SUtility:" 分割数据
+                        if (partitions.length < 2) return;  // 如果没有有效的分割部分则跳过
+
+                        boolean key = false;
+                        String[] itemUtilityPairs = partitions[0].trim().split(" ");  // 按空格分割项效用对
+                        List<Integer> itemsIntList = new ArrayList<>();
+                        List<Integer> utilsIntList = new ArrayList<>();
+                        boolean containsMaxUtility = false;
+
+                        for (String pair : itemUtilityPairs) {
+                            if (pair.isEmpty()) continue;
+
+                            // 解析 "item[utility]" 格式
+                            String[] itemUtility = pair.split("\\[|\\]"); // 按 "[" 和 "]" 分割
+                            if (itemUtility.length != 2) continue;
+
+                            try {
+                                int item = Integer.parseInt(itemUtility[0].trim());
+                                int utility = Integer.parseInt(itemUtility[1].trim());
+
+                                // 如果效用大于等于 max_utility，则跳过该项和效用
+                                if (utility >= max_utility) {
+                                    containsMaxUtility = true;
+                                    continue; // 跳过该项和效用，不存储
+                                } else {
+                                    key = true;
+                                }
+
+                                setOfItems.add(item);
+                                itemsIntList.add(item);
+                                utilsIntList.add(utility);
+                            } catch (NumberFormatException e) {
+                                // 处理解析错误的情况
+                                System.out.println("解析项或效用错误: " + pair);
+                            }
+                        }
+
+                        // 如果包含最大效用项，则添加 -1 到集合中
+                        if (containsMaxUtility) {
+                            setOfItems.add(-1);
+                        }
+
+                        // 如果存在有效的项和效用，加入到 map 中
+                        if (key) {
+                            count += itemsIntList.size();
+                            mapTidToItems.put(tidCount[0], itemsIntList.toArray(new Integer[0]));
+                            mapTidToUtilities.put(tidCount[0], utilsIntList.toArray(new Integer[0]));
+                            sequenceId.add(count);
+                            tidCount[0]++;
+                        }
+                    });
+
+            this.mapTidToItems = mapTidToItems;
+            this.mapTidToUtilities = mapTidToUtilities;
+
+            printMapData("mapTidToItems", mapTidToItems);
+            printMapData("mapTidToUtilities", mapTidToUtilities);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void loadFile(String path) throws IOException {
@@ -99,7 +263,6 @@ public class LowUtilitySequenceMining {
 //                            count++;
                             increment++;
                             if (utility >= max_utility) {
-                                item = -1;
                                 utility = -1;
                                 containsMaxUtility = true;
                             } else {
@@ -142,7 +305,41 @@ public class LowUtilitySequenceMining {
         }
     }
 
-    public void preprocess(int maxLength) {
+    public void addHasKnownHS(int indexOfSequence,int indexOfItem,int item) {
+
+        List<Integer> highUSequence=new ArrayList<>();
+        Integer[] sequenceAll=this.mapTidToItems.get(indexOfSequence);
+        if(indexOfItem-this.maxLength+1<0){
+            for(int i=0;i<=indexOfItem+this.maxLength&&i< sequenceAll.length;i++){
+                highUSequence=new ArrayList<>();
+                for(int j=0;j<this.maxLength;j++)
+                {
+                    highUSequence.add(sequenceAll[i+j]);
+                    if(!hasKnownHighUtilitySequence.contains(highUSequence)&&i<=indexOfItem&&j>=indexOfItem)
+                    {
+                        this.candidatesCount++;
+                        hasKnownHighUtilitySequence.add(new ArrayList<>(highUSequence));
+                    }
+                }
+            }
+        }
+        else{
+            for(int i=indexOfItem-this.maxLength+1;i<=indexOfItem+this.maxLength&&i<sequenceAll.length;i++){
+                highUSequence=new ArrayList<>();
+                for(int j=0;j<this.maxLength&&(i+j)<sequenceAll.length;j++)
+                {
+                    highUSequence.add(sequenceAll[i+j]);
+                    if(!hasKnownHighUtilitySequence.contains(highUSequence)&&highUSequence.contains(item))
+                    {
+                        this.candidatesCount++;
+                        hasKnownHighUtilitySequence.add(new ArrayList<>(highUSequence));
+                    }
+                }
+            }
+        }
+    }
+
+    public void getMaxSequence_delete(int maxLength) {
         System.out.println("当前运行到 preprocess");
         int countBit = 0;
 
@@ -154,7 +351,7 @@ public class LowUtilitySequenceMining {
                 countBit++;
             }
         }
-
+        System.out.println("2222");
         runtime4 = System.currentTimeMillis() - startTime;
 
         // **优化序列处理**
@@ -162,6 +359,7 @@ public class LowUtilitySequenceMining {
         for (Map.Entry<Integer, Integer[]> entry : mapTidToItems.entrySet()) {
             Integer[] items = entry.getValue();
             int length = items.length;
+            System.out.println("AAA");
 
             for (int i = 0; i < length; i++) {
                 if (items[i] == -1) {
@@ -183,7 +381,55 @@ public class LowUtilitySequenceMining {
                 }
             }
         }
+        System.out.println("333");
+        System.out.println("输出最大序列");
+        System.out.println(maxSequenceList);
+        runtime5 = System.currentTimeMillis() - startTime;
+    }
 
+    public void getMaxSequence(int maxLength) {
+        System.out.println("当前运行到 preprocess");
+        int countBit = 0;
+
+        // 创建每一项的位图
+        for (Map.Entry<Integer, Integer[]> entry : mapTidToItems.entrySet()) {
+            Integer[] items = entry.getValue();
+            for (Integer key : items) {
+                mapItemToBitSet.computeIfAbsent(key, k -> new BitSet()).set(countBit);
+                countBit++;
+            }
+        }
+        System.out.println("2222");
+        runtime4 = System.currentTimeMillis() - startTime;
+
+        // **优化序列处理**
+        List<Integer> listItems = new ArrayList<>();  // 复用 List，减少创建对象
+        for (Map.Entry<Integer, Integer[]> entry : mapTidToItems.entrySet()) {
+            Integer[] items = entry.getValue();
+            int length = items.length;
+            System.out.println("AAA");
+
+            for (int i = 0; i < length; i++) {
+                if (items[i] == -1) {
+                    continue; // 跳过分隔符
+                }
+
+                listItems.clear();  // 复用 List
+                for (int j = i; j < length && (j - i + 1) <= maxLength; j++) {
+                    if (items[j] == -1) {
+                        break;
+                    }
+                    listItems.add(items[j]);
+                }
+
+                candidatesCount++;
+
+                if (!listItems.isEmpty() && !isContains(listItems)) {
+                    addSequence(new ArrayList<>(listItems));  // 传递副本，确保数据一致
+                }
+            }
+        }
+        System.out.println("333");
         System.out.println("输出最大序列");
         System.out.println(maxSequenceList);
         runtime5 = System.currentTimeMillis() - startTime;
@@ -191,9 +437,13 @@ public class LowUtilitySequenceMining {
 
     public void processCoreAlgorithm() {
         System.out.println("当前运行到coreAlg");
+        int size = maxSequenceList.size();
+        int num_now = 0;
         for (List<Integer> sequence : maxSequenceList) {
+            System.out.println(num_now + "/" + size);
+            num_now++;
             int utilityOfSequence = countUtility(sequence);
-            if (utilityOfSequence <= max_utility && hasProcessedSequenceList.contains(sequence) == false) {
+            if (utilityOfSequence <= max_utility && hasProcessedSequenceList.contains(sequence) == false&&hasKnownHighUtilitySequence.contains(sequence)==false) {
                 processLowUtilitySequence(sequence, utilityOfSequence);
             } else {
 //                cut2(sequence);
@@ -206,7 +456,8 @@ public class LowUtilitySequenceMining {
     }
 
     private void processLowUtilitySequence(List<Integer> sequence, int utility) {
-        if (!hasProcessedSequenceList.contains(sequence)) {
+        if (!hasProcessedSequenceList.contains(sequence)&&hasKnownHighUtilitySequence.contains(sequence)==false) {
+            System.out.println("获得低效用序列：" + sequence);
             hasProcessedSequenceList.add(sequence);
             candidatesCount++;
             patternCount++;
@@ -218,34 +469,34 @@ public class LowUtilitySequenceMining {
         }
     }
 
-    public void cut2(List<Integer> sequence) {
-        if (sequence.size() > 1) {
-            List<Integer> subFirstSequence = new ArrayList<>(sequence);
-            List<Integer> subLastSequence = new ArrayList<>(sequence);
-            subFirstSequence.remove(0); // 删除首项
-            subLastSequence.remove(subLastSequence.size() - 1); // 删除尾项
-            int firstUtility = countUtility(subFirstSequence);
-            int lastUtility = countUtility(subLastSequence);
-            if (firstUtility <= max_utility && hasProcessedSequenceList.contains(subFirstSequence) == false) {
-                processLowUtilitySequence(subFirstSequence, firstUtility);
-                hasProcessedSequenceList.add(subFirstSequence);
-            } else {
-                cut2(subFirstSequence);
-            }
-            if (lastUtility <= max_utility && hasProcessedSequenceList.contains(subLastSequence) == false) {
-                processLowUtilitySequence(subLastSequence, lastUtility);
-                hasProcessedSequenceList.add(subLastSequence);
-            } else {
-                cut2(subLastSequence);
-            }
-        } else {
-//            System.out.println("处理一个项");
-            if (hasProcessedSequenceList.contains(sequence) == false) {
-                LUSMItem(sequence);
-                hasProcessedSequenceList.add(sequence);
-            }
-        }
-    }
+//    public void cut2(List<Integer> sequence) {
+//        if (sequence.size() > 1) {
+//            List<Integer> subFirstSequence = new ArrayList<>(sequence);
+//            List<Integer> subLastSequence = new ArrayList<>(sequence);
+//            subFirstSequence.remove(0); // 删除首项
+//            subLastSequence.remove(subLastSequence.size() - 1); // 删除尾项
+//            int firstUtility = countUtility(subFirstSequence);
+//            int lastUtility = countUtility(subLastSequence);
+//            if (firstUtility <= max_utility && hasProcessedSequenceList.contains(subFirstSequence) == false) {
+//                processLowUtilitySequence(subFirstSequence, firstUtility);
+//                hasProcessedSequenceList.add(subFirstSequence);
+//            } else {
+//                cut2(subFirstSequence);
+//            }
+//            if (lastUtility <= max_utility && hasProcessedSequenceList.contains(subLastSequence) == false) {
+//                processLowUtilitySequence(subLastSequence, lastUtility);
+//                hasProcessedSequenceList.add(subLastSequence);
+//            } else {
+//                cut2(subLastSequence);
+//            }
+//        } else {
+////            System.out.println("处理一个项");
+//            if (hasProcessedSequenceList.contains(sequence) == false) {
+//                LUSMItem(sequence);
+//                hasProcessedSequenceList.add(sequence);
+//            }
+//        }
+//    }
 
     public void cut(List<Integer> sequence) {
         if (sequence.size() > 1) {
@@ -254,7 +505,7 @@ public class LowUtilitySequenceMining {
             cutLast(sequence, utilities);
         } else {
 //            System.out.println("处理一个项");
-            if (hasProcessedSequenceList.contains(sequence) == false) {
+            if (hasProcessedSequenceList.contains(sequence) == false&&hasKnownHighUtilitySequence.contains(sequence)==false) {
                 LUSMItem(sequence);
                 hasProcessedSequenceList.add(sequence);
             }
@@ -273,7 +524,7 @@ public class LowUtilitySequenceMining {
     }
 
     private void processSingleElementSequence(List<Integer> sequence) {
-        if (hasProcessedSequenceList.contains(sequence) == false) {
+        if (hasProcessedSequenceList.contains(sequence) == false&&hasKnownHighUtilitySequence.contains(sequence)==false) {
             LUSMItem(sequence);
             hasProcessedSequenceList.add(sequence);
         }
@@ -499,7 +750,7 @@ public class LowUtilitySequenceMining {
     }
 
     public void LUSM(List<Integer> sequence) {
-        if (!hasProcessedSequenceList.contains(sequence) && !hasDeleteSequenceList.contains(sequence)) {
+        if (!hasProcessedSequenceList.contains(sequence) && !hasDeleteSequenceList.contains(sequence)&&hasKnownHighUtilitySequence.contains(sequence)==false) {
             if (countUtility(sequence) <= max_utility)
                 processLowUtilitySequence(sequence, countUtility(sequence));
         }
@@ -521,7 +772,7 @@ public class LowUtilitySequenceMining {
 
 
     private void processSubSequence(List<Integer> subSequence) {
-        if (subSequence.size() > 1 && !hasProcessedSequenceList.contains(subSequence)) {
+        if (subSequence.size() > 1 && !hasProcessedSequenceList.contains(subSequence)&&hasKnownHighUtilitySequence.contains(subSequence)==false) {
             int utility = countUtility(subSequence);
 //            hasProcessedSequenceList.add(subSequence);
             if (utility <= max_utility && lowUtilityPattern.get(subSequence) == null) {

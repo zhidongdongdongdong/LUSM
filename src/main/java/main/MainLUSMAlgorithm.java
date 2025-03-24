@@ -14,11 +14,17 @@ public class MainLUSMAlgorithm {
     static List<Integer> pattern=new ArrayList<>();
     public static void main(String[] args)throws IOException {
         //扫描文件
-        String input1="example2.txt";
+//        String input1="bible_short.txt";
+//        String input1="bible.txt";
+//        String input1="kosrak10k.txt";
+        String input1="example.txt";
         String finalInput=input1;
         String input = fileToPath("/"+finalInput);
         String output = ".//outputNew.txt";
-        int[] max_utility = new int[]{5000};
+        Runtime runtime=Runtime.getRuntime();
+        long initialMemory=runtime.totalMemory()-runtime.freeMemory();
+        System.out.println("程序开始前的内存消耗："+initialMemory/(1024*1024)+"MB");
+        int[] max_utility = new int[]{50};
         int maxLength=5;
         for (int i = 0; i < max_utility.length; i++) {
             MemoryLogger.getInstance().reset();
@@ -28,6 +34,11 @@ public class MainLUSMAlgorithm {
             MemoryLogger.getInstance().checkMemory();
             lowUtilitySequenceMining.printStats(runTime,memory,candidates,pattern);
         }
+        long finalMemory=runtime.totalMemory()-runtime.freeMemory();
+        System.out.println("程序结束时的内存消耗："+finalMemory/(1024*1024)+"MB");
+        long memoryConsumed=finalMemory-initialMemory;
+        System.out.println("程序总共消耗的内存为："+memoryConsumed/(1024*1024)+"MB");
+        System.out.println("真实内存消耗为： "+ MemoryLogger.getInstance().getMaxMemory()+ " MB");
 //        OutputExp(max_utility,finalInput);
     }
     private static void OutputExp(int[] max_utility, String input) throws IOException {
